@@ -105,7 +105,7 @@ The application allows users to register, authenticate securely, create posts, i
 
 ### 1. Clone the repository
 
-git clone https://github.com/your-username/mern-social-platform.git
+git clone https://github.com/coderXdevelop/Simple-Socialmedia.git
 
 ### 2. Install dependencies
 
