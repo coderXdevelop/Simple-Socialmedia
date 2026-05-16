@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Luminary - MERN Stack Social Media App
 
 A full-stack social media application built with the MERN stack (MongoDB, Express.js, React, Node.js).
