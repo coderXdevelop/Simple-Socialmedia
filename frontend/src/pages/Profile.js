@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getProfile } from '../services/api';
+import { getProfile, deleteAvatar } from '../services/api';
 
 const Profile = () => {
   const { user, setUser, logout } = useAuth();
@@ -9,6 +9,27 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const backendUrl = 'http://localhost:5000';
+
+  const normalizeDriveUrl = (url) => {
+    if (!url) return '';
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname === 'drive.google.com') {
+        const path = parsed.pathname.split('/');
+        if (path[1] === 'file' && path[2] === 'd') {
+          const fileId = path[3];
+          return fileId ? `/api/file/drive/${fileId}` : url;
+        }
+        if (path[1] === 'uc') {
+          const fileId = parsed.searchParams.get('id');
+          return fileId ? `/api/file/drive/${fileId}` : url;
+        }
+      }
+    } catch {
+      return url;
+    }
+    return url;
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -29,13 +50,28 @@ const Profile = () => {
     navigate('/');
   };
 
+  const handleDeleteAvatar = async () => {
+    try {
+      await deleteAvatar();
+      setProfile((prev) => ({ ...prev, avatar: '' }));
+      setUser((prev) => (prev ? { ...prev, avatar: '' } : prev));
+    } catch (err) {
+      console.error('Delete avatar failed', err);
+    }
+  };
+
   if (loading) return <div className="loading"><div className="spinner" /></div>;
   if (!profile) return null;
 
-  const avatarSrc = profile.avatar
-    ? profile.avatar.startsWith('/uploads')
-      ? `${backendUrl}${profile.avatar}`
-      : profile.avatar
+  const resolvedAvatar =
+    profile.avatar && typeof profile.avatar === 'object'
+      ? profile.avatar.url
+      : profile.avatar;
+
+  const avatarSrc = resolvedAvatar
+    ? resolvedAvatar.startsWith('/uploads')
+      ? `${backendUrl}${resolvedAvatar}`
+      : normalizeDriveUrl(resolvedAvatar)
     : null;
 
   return (
@@ -43,36 +79,36 @@ const Profile = () => {
       <div className="profile-hero">
         <div className="avatar-wrapper">
           {avatarSrc ? (
-            <img src={avatarSrc} alt={profile.username} className="avatar" />
+            <img src={avatarSrc} alt={profile.displayName || profile.username} className="avatar" />
           ) : (
             <div className="avatar-placeholder">
-              {profile.username[0].toUpperCase()}
+              {(profile.displayName || profile.username)[0]?.toUpperCase()}
             </div>
           )}
         </div>
         <div className="profile-info">
-          <h2>@{profile.username}</h2>
+          <h2>{profile.displayName || profile.username}</h2>
           <p>{profile.email}</p>
-          <span className="profile-stat">{profile.posts?.length || 0} posts</span>
+          <span className="profile-stat">Age: {profile.age}</span>
+          <span className="profile-stat">Posts: {profile.posts?.length || 0}</span>
         </div>
       </div>
 
       <div className="profile-actions">
-        <Link to="/upload-avatar" className="btn btn-ghost">
-          ◎ Upload Avatar
-        </Link>
         <Link to="/create-post" className="btn btn-primary">
           + Create Post
         </Link>
         <Link to="/your-post" className="btn btn-ghost">
           ☰ Your Posts
         </Link>
-        <Link to="/view-post" className="btn btn-ghost">
-          ◈ Explore Feed
+        <Link to="/profile/edit" className="btn btn-ghost btn-sm">
+          Edit Profile
         </Link>
-        <button onClick={handleLogout} className="btn btn-danger">
-          ⎋ Logout
-        </button>
+        {avatarSrc && (
+          <button onClick={handleDeleteAvatar} className="btn btn-outline btn-sm">
+            Delete Avatar
+          </button>
+        )}
       </div>
     </div>
   );

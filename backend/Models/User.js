@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema(
   {
@@ -10,6 +10,18 @@ const userSchema = new mongoose.Schema(
       trim: true,
       minlength: [3, 'Username must be at least 3 characters'],
       maxlength: [30, 'Username cannot exceed 30 characters'],
+    },
+    displayName: {
+      type: String,
+      required: [true, 'Display name is required'],
+      trim: true,
+      maxlength: [50, 'Display name cannot exceed 50 characters'],
+    },
+    age: {
+      type: Number,
+      required: [true, 'Age is required'],
+      min: [1, 'Age must be at least 1'],
+      max: [120, 'Please provide a valid age'],
     },
     email: {
       type: String,
@@ -24,8 +36,20 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
     },
+    otp: {
+      type: String, // store OTP as string for consistency
+      default: null,
+    },
+    otpExpires: {
+      type: Date, // consistent naming with controller
+      default: null,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
     avatar: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       default: '',
     },
     posts: [

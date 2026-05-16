@@ -1,7 +1,6 @@
-const Post = require('../models/Post');
-const User = require('../models/User');
-const fs = require('fs');
-const path = require('path');
+const Post = require('../Models/Post');
+const User = require('../Models/User');
+const { uploadToDrive, deleteFromDrive } = require('../Utils/googleDrive');
 
 // POST /api/post/create
 const createPost = async (req, res) => {
@@ -11,7 +10,15 @@ const createPost = async (req, res) => {
       return res.status(400).json({ message: 'Title and content are required' });
     }
 
-    const image = req.file ? `/uploads/${req.file.filename}` : '';
+    let image = {};
+    if (req.file) {
+      try {
+        image = await uploadToDrive(req.file); // { fileId, url }
+      } catch (uploadError) {
+        console.error('Google Drive upload error:', uploadError);
+        return res.status(500).json({ message: 'Failed to upload image. Please try again.' });
+      }
+    }
 
     const post = await Post.create({
       title,
@@ -25,6 +32,7 @@ const createPost = async (req, res) => {
     const populated = await post.populate('author', 'username avatar');
     res.status(201).json(populated);
   } catch (error) {
+    console.error('Post creation error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -34,7 +42,6 @@ const getAllPosts = async (req, res) => {
   try {
     const posts = await Post.find()
       .populate('author', 'username avatar')
-      .populate('likes', 'username')
       .sort({ createdAt: -1 });
     res.json(posts);
   } catch (error) {
@@ -47,9 +54,44 @@ const getUserPosts = async (req, res) => {
   try {
     const posts = await Post.find({ author: req.user._id })
       .populate('author', 'username avatar')
-      .populate('likes', 'username')
       .sort({ createdAt: -1 });
     res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// PUT /api/post/like/:id
+const likePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    if (post.likes.includes(req.user._id)) {
+      return res.status(400).json({ message: 'Already liked' });
+    }
+
+    post.likes.push(req.user._id);
+    await post.save();
+
+    const populated = await post.populate('author', 'username avatar');
+    res.json(populated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// PUT /api/post/unlike/:id
+const unlikePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    post.likes = post.likes.filter((userId) => userId.toString() !== req.user._id.toString());
+    await post.save();
+
+    const populated = await post.populate('author', 'username avatar');
+    res.json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -70,11 +112,10 @@ const editPost = async (req, res) => {
     if (content) post.content = content;
 
     if (req.file) {
-      if (post.image && post.image.startsWith('/uploads/')) {
-        const oldPath = path.join(__dirname, '..', post.image);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      if (post.image?.fileId) {
+        await deleteFromDrive(post.image.fileId);
       }
-      post.image = `/uploads/${req.file.filename}`;
+      post.image = await uploadToDrive(req.file);
     }
 
     await post.save();
@@ -95,9 +136,8 @@ const deletePost = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this post' });
     }
 
-    if (post.image && post.image.startsWith('/uploads/')) {
-      const imgPath = path.join(__dirname, '..', post.image);
-      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    if (post.image?.fileId) {
+      await deleteFromDrive(post.image.fileId);
     }
 
     await post.deleteOne();
@@ -109,36 +149,12 @@ const deletePost = async (req, res) => {
   }
 };
 
-// PUT /api/post/like/:id
-const likePost = async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: 'Post not found' });
-
-    if (post.likes.includes(req.user._id)) {
-      return res.status(400).json({ message: 'Post already liked' });
-    }
-
-    post.likes.push(req.user._id);
-    await post.save();
-    res.json({ likes: post.likes, message: 'Post liked' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+module.exports = {
+  createPost,
+  getAllPosts,
+  getUserPosts,
+  editPost,
+  deletePost,
+  likePost,
+  unlikePost,
 };
-
-// PUT /api/post/unlike/:id
-const unlikePost = async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: 'Post not found' });
-
-    post.likes = post.likes.filter((id) => id.toString() !== req.user._id.toString());
-    await post.save();
-    res.json({ likes: post.likes, message: 'Post unliked' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-module.exports = { createPost, getAllPosts, getUserPosts, editPost, deletePost, likePost, unlikePost };

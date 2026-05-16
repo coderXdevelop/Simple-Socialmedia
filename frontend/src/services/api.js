@@ -7,13 +7,16 @@ const API = axios.create({
 
 // Auth
 export const register = (data) => API.post('/auth/register', data);
+export const verifyOTP = (data) => API.post('/auth/verify-otp', data);
 export const login = (data) => API.post('/auth/login', data);
-export const logout = () => API.get('/auth/logout');
+export const logout = () => API.post('/auth/logout');
 
 // User
 export const getProfile = () => API.get('/user/profile');
 export const updateAvatar = (formData) =>
   API.put('/user/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const updateProfile = (data) => API.put('/user/profile', data);
+export const deleteAvatar = () => API.delete('/user/avatar');
 
 // Posts
 export const createPost = (formData) =>

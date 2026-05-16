@@ -15,8 +15,8 @@ const postSchema = new mongoose.Schema(
       maxlength: [2000, 'Content cannot exceed 2000 characters'],
     },
     image: {
-      type: String,
-      default: '',
+      fileId: { type: String, default: '' }, // Google Drive file ID
+      url: { type: String, default: '' },    // Google Drive view/download link
     },
     likes: [
       {
@@ -32,5 +32,7 @@ const postSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+postSchema.index({ likes: 1 });
 
 module.exports = mongoose.model('Post', postSchema);

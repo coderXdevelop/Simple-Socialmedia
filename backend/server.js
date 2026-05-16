@@ -2,37 +2,42 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const path = require('path');
-const fs = require('fs');
-const connectDB = require('./config/db');
+const connectDB = require('./Config/db');
+const helmet = require('helmet');
+const morgan = require('morgan');
 
 connectDB();
 
 const app = express();
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
 // Middleware
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
-// Static files for uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(helmet());
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
 // Routes
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/user', require('./routes/userRoutes'));
-app.use('/api/post', require('./routes/postRoutes'));
+app.use('/api/auth', require('./Routes/authRoutes'));
+app.use('/api/user', require('./Routes/userRoutes'));
+app.use('/api/post', require('./Routes/postRoutes'));
+app.use('/api/file', require('./Routes/fileRoutes'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));
+
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Route not found' });
+});
 
 // Global error handler
 app.use((err, req, res, next) => {

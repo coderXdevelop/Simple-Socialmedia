@@ -20,17 +20,49 @@ const PostCard = ({ post, onUpdate, showActions = false, onEdit, onDelete }) => 
     }
   };
 
-  const getAvatarSrc = (avatar) =>
-    avatar ? (avatar.startsWith('/uploads') ? `${backendUrl}${avatar}` : avatar) : null;
+    const normalizeDriveUrl = (url) => {
+    if (!url) return '';
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname === 'drive.google.com') {
+        const path = parsed.pathname.split('/');
+        if (path[1] === 'file' && path[2] === 'd') {
+          const fileId = path[3];
+          return fileId ? `/api/file/drive/${fileId}` : url;
+        }
+        if (path[1] === 'uc') {
+          const fileId = parsed.searchParams.get('id');
+          return fileId ? `/api/file/drive/${fileId}` : url;
+        }
+      }
+    } catch {
+      return url;
+    }
+    return url;
+  };
+
+  const getAvatarSrc = (avatar) => {
+    if (!avatar) return null;
+    const url = typeof avatar === 'object' ? avatar.url : avatar;
+    return url.startsWith('/uploads') ? `${backendUrl}${url}` : normalizeDriveUrl(url);
+  };
 
   const avatarSrc = getAvatarSrc(post.author?.avatar);
   const initials = post.author?.username?.[0]?.toUpperCase() || '?';
 
+  const imageSrc = post.image
+    ? typeof post.image === 'string'
+      ? post.image.startsWith('/uploads')
+        ? `${backendUrl}${post.image}`
+        : normalizeDriveUrl(post.image)
+      : normalizeDriveUrl(post.image.url || '')
+    : '';
+
   return (
     <div className="post-card">
-      {post.image && (
+      {imageSrc && (
         <img
-          src={`${backendUrl}${post.image}`}
+          src={imageSrc}
           alt={post.title}
           className="post-image"
         />

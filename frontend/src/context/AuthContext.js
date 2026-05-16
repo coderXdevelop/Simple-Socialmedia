@@ -12,7 +12,11 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data } = await getProfile();
         setUser(data);
-      } catch {
+      } catch (err) {
+        // If 401, user is not authenticated, which is fine
+        if (err.response?.status !== 401) {
+          console.error('Error fetching profile:', err);
+        }
         setUser(null);
       } finally {
         setLoading(false);

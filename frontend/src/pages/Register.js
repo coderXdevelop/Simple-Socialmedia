@@ -4,7 +4,7 @@ import { register } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
-  const [form, setForm] = useState({ username: '', email: '', password: '' });
+  const [form, setForm] = useState({ username: '', displayName: '', age: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { setUser } = useAuth();
@@ -17,9 +17,8 @@ const Register = () => {
     setError('');
     setLoading(true);
     try {
-      const { data } = await register(form);
-      setUser(data);
-      navigate('/profile');
+      await register(form);
+      navigate('/verify-otp', { state: { email: form.email } });
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
@@ -40,6 +39,19 @@ const Register = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
+            <label className="form-label">Display Name</label>
+            <input
+              type="text"
+              name="displayName"
+              className="form-input"
+              placeholder="Your full name"
+              value={form.displayName}
+              onChange={handleChange}
+              required
+              maxLength={50}
+            />
+          </div>
+          <div className="form-group">
             <label className="form-label">Username</label>
             <input
               type="text"
@@ -50,6 +62,20 @@ const Register = () => {
               onChange={handleChange}
               required
               minLength={3}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Age</label>
+            <input
+              type="number"
+              name="age"
+              className="form-input"
+              placeholder="18"
+              value={form.age}
+              onChange={handleChange}
+              required
+              min={1}
+              max={120}
             />
           </div>
           <div className="form-group">

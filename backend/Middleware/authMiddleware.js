@@ -1,9 +1,10 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const User = require('../Models/User');
 
 const protect = async (req, res, next) => {
   try {
-    const token = req.cookies.token;
+    const token = req.cookies.token ||
+                  (req.headers.authorization && req.headers.authorization.split(' ')[1]);
 
     if (!token) {
       return res.status(401).json({ message: 'Not authorized, no token' });
@@ -19,6 +20,9 @@ const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired' });
+    }
     return res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };

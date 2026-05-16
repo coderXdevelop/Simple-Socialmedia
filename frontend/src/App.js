@@ -6,9 +6,11 @@ import PrivateRoute from './components/PrivateRoute';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyOTP from './pages/VerifyOTP';
 import Profile from './pages/Profile';
 import UploadAvatar from './pages/UploadAvatar';
 import CreatePost from './pages/CreatePost';
+import EditProfile from './pages/EditProfile';
 import EditPost from './pages/EditPost';
 import YourPost from './pages/YourPost';
 import ViewPost from './pages/ViewPost';
@@ -30,8 +32,10 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={user ? <Navigate to="/profile" replace /> : <Login />} />
         <Route path="/register" element={user ? <Navigate to="/profile" replace /> : <Register />} />
+        <Route path="/verify-otp" element={user ? <Navigate to="/profile" replace /> : <VerifyOTP />} />
 
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/profile/edit" element={<PrivateRoute><EditProfile /></PrivateRoute>} />
         <Route path="/upload-avatar" element={<PrivateRoute><UploadAvatar /></PrivateRoute>} />
         <Route path="/create-post" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
         <Route path="/edit-post/:id" element={<PrivateRoute><EditPost /></PrivateRoute>} />

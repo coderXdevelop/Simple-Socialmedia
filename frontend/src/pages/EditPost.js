@@ -58,9 +58,38 @@ const EditPost = () => {
     }
   };
 
+  const normalizeDriveUrl = (url) => {
+    if (!url) return '';
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname === 'drive.google.com') {
+        const path = parsed.pathname.split('/');
+        if (path[1] === 'file' && path[2] === 'd') {
+          const fileId = path[3];
+          return fileId ? `/api/file/drive/${fileId}` : url;
+        }
+        if (path[1] === 'uc') {
+          const fileId = parsed.searchParams.get('id');
+          return fileId ? `/api/file/drive/${fileId}` : url;
+        }
+      }
+    } catch {
+      return url;
+    }
+    return url;
+  };
+
   if (fetching) return <div className="loading"><div className="spinner" /></div>;
 
-  const currentImage = preview || (existingImage ? `${backendUrl}${existingImage}` : null);
+  const existingImageUrl = existingImage
+    ? typeof existingImage === 'string'
+      ? existingImage.startsWith('/uploads')
+        ? `${backendUrl}${existingImage}`
+        : normalizeDriveUrl(existingImage)
+      : normalizeDriveUrl(existingImage.url || '')
+    : null;
+
+  const currentImage = preview || existingImageUrl;
 
   return (
     <div className="page-narrow" style={{ paddingTop: '3rem' }}>
